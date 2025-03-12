@@ -23,27 +23,39 @@ public class ClienteResource {
 
     // POST - Criar cliente
     @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     public Response criarCliente(Cliente cliente, @Context UriInfo uriInfo) {
         try {
-
             clienteBO.validarCliente(cliente);
 
             boolean usuarioCadastrado = clienteDAO.clienteExiste(cliente.getEmail());
 
             if (usuarioCadastrado) {
-                return Response.status(Response.Status.CONFLICT).entity("Informações já existentes.").build();
+                return Response.status(Response.Status.CONFLICT)
+                        .entity("Cliente já cadastrado com o email fornecido.")
+                        .build();
             }
 
             clienteDAO.cadastrar(cliente);
 
             UriBuilder builder = uriInfo.getAbsolutePathBuilder();
-            return Response.created(builder.path(cliente.getId()).build()).entity(cliente).build();
+            return Response.created(builder.path(cliente.getId()).build())
+                    .entity(cliente)
+                    .build();
 
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(e.getMessage())
+                    .build();
         } catch (Exception e) {
             e.printStackTrace();
-            return Response.serverError().entity("Erro ao criar cliente: " + e.getMessage()).build();
+            return Response.serverError()
+                    .entity("Erro ao criar cliente: " + e.getMessage())
+                    .build();
         }
     }
+
 
     // GET - Login Cliente
     @GET
