@@ -12,6 +12,7 @@ import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.UriInfo;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Logger;
 
 @Path("/cliente")
 @Produces(MediaType.APPLICATION_JSON)
@@ -62,13 +63,30 @@ public class ClienteResource {
     @Path("/login")
     public Response loginCliente(@QueryParam("email") String email, @QueryParam("senha") String senha) {
         try {
+            System.out.println("Recebida requisição de login! Email: " + email + ", Senha: " + senha);
+
             Cliente cliente = clienteDAO.buscarPorLogin(email, senha);
+
+            if (cliente == null) {
+                System.out.println("Login falhou: E-mail ou senha incorretos.");
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity("E-mail ou senha incorretos.")
+                        .build();
+            }
+
+            System.out.println("Login bem-sucedido para: " + email);
             return Response.ok(cliente).build();
         } catch (SQLException e) {
-            String errorMessage = e.getMessage();
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Credenciais inválidas.").build();
+            System.out.println("Erro SQL: " + e.getMessage());
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Erro de banco de dados.")
+                    .build();
         } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Erro no servidor.").build();
+            e.printStackTrace();
+            System.out.println("Erro inesperado no servidor.");
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("Erro no servidor.")
+                    .build();
         }
     }
 
@@ -77,10 +95,12 @@ public class ClienteResource {
     @Path("/{email}")
     public Response getCliente(@PathParam("email") String email) {
         try {
-            Cliente cliente = clienteDAO.pesquisarPorEmail(email);
+            Cliente cliente = clienteDAO.buscarPorEmail(email);
             return Response.ok(cliente).build();
         } catch (IdNaoEncontradoException e) {
             return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -89,7 +109,6 @@ public class ClienteResource {
     @GET
     public Response getTodosClientes() {
         List<Cliente> clientes = clienteDAO.listar();
-        System.out.println("Lista de Clientes:\n" + clientes.toString());
         return Response.ok(clientes).build();
 
     }
@@ -99,7 +118,7 @@ public class ClienteResource {
     @Path("/{email}")
     public Response atualizarCliente(@PathParam("email") String email, Cliente clienteAtualizado, @Context UriInfo uriInfo) {
         try {
-            Cliente cliente = clienteDAO.pesquisarPorEmail(email);
+            Cliente cliente = clienteDAO.buscarPorEmail(email);
 
             cliente.setNome(clienteAtualizado.getNome());
             cliente.setEmail(clienteAtualizado.getEmail());
@@ -111,6 +130,8 @@ public class ClienteResource {
             return Response.created(builder.path(cliente.getId()).build()).entity(cliente).build();
         } catch (IdNaoEncontradoException e) {
             return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 

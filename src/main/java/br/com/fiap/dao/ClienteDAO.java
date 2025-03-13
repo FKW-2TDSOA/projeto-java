@@ -29,8 +29,6 @@ public class ClienteDAO {
                 cliente.setId(generatedKeys.getString(1));
             }
 
-            System.out.println("Cliente cadastrado com sucesso!");
-
         } catch (SQLException e) {
             System.err.println("Erro ao inserir cliente no banco de dados.");
             e.printStackTrace();
@@ -67,14 +65,14 @@ public class ClienteDAO {
     }
 
     // Método de pesquisar por ID
-    public Cliente pesquisarPorEmail(String email) {
+    public Cliente buscarPorEmail(String email) throws SQLException {
         Cliente cliente = null;
-        String sql = "SELECT * FROM T_CLIENTE WHERE email = ?";
+        String sql = "SELECT * FROM T_CLIENTE WHERE LOWER(email) = LOWER(?)";
 
         try (Connection conexao = ConnectionFactory.getConnection();
              PreparedStatement stmt = conexao.prepareStatement(sql)) {
 
-            stmt.setString(1, email);
+            stmt.setString(1, email.trim());
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
@@ -84,15 +82,8 @@ public class ClienteDAO {
                         rs.getString("email"),
                         rs.getString("senha")
                 );
-            } else {
-                throw new IdNaoEncontradoException("Cliente não encontrado com o email: " + email);
             }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            throw new RuntimeException("Erro ao pesquisar cliente", e);
         }
-
         return cliente;
     }
 
